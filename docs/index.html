@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f5f7f8" />
+    <title>Oral Pathology Page Finder</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="#top" aria-label="Oral Pathology Page Finder home">
+          <span class="brand-mark" aria-hidden="true">PD</span>
+          <span class="brand-copy"><strong>Page Finder - Custom made for Dr.Priyanka Dhomane</strong><small>OP GM GS · BDS 3rd year</small></span>
+        </a>
+        <div class="top-actions">
+          <span class="local-badge"><span class="status-dot"></span> Your book stays on this device</span>
+          <label class="subject-picker" for="subject-select">
+            <span>Study subject</span>
+            <select id="subject-select" aria-label="Choose a subject">
+              <option value="oral">Oral Pathology</option>
+              <option value="medicine">General Medicine</option>
+              <option value="surgery">General Surgery</option>
+            </select>
+          </label>
+          <label class="button button-primary upload-button" for="book-file">Choose book PDF</label>
+          <input id="book-file" type="file" accept="application/pdf,.pdf" hidden />
+        </div>
+      </header>
+
+      <section class="intro" id="top">
+        <div>
+          <p class="eyebrow">Study workspace</p>
+          <h1>Find the page. Get back to studying.</h1>
+          <p class="intro-copy">Choose a subject, search a question, and jump to its page in the full 3-subject book.</p>
+        </div>
+        <div class="stats" aria-label="Index size">
+          <div><strong id="topic-count">161</strong><span>topics</span></div>
+          <div><strong id="chapter-count">24</strong><span id="chapter-unit">chapters</span></div>
+        </div>
+      </section>
+
+      <section class="workspace" aria-label="Question index and book viewer">
+        <div class="question-panel">
+          <div class="controls">
+            <label class="search-box" for="search-input">
+              <span class="search-icon" aria-hidden="true">⌕</span>
+              <input id="search-input" type="search" placeholder="Search or paste a question..." autocomplete="off" />
+              <kbd>/</kbd>
+            </label>
+            <label class="select-wrap" for="chapter-select">
+              <span class="sr-only">Filter by chapter</span>
+              <select id="chapter-select"><option value="all">All chapters</option></select>
+            </label>
+          </div>
+          <div class="list-heading">
+            <div><h2>Question index</h2><p id="result-count">161 topics</p></div>
+            <button id="clear-filters" class="text-button" type="button">Clear</button>
+          </div>
+          <div id="question-list" class="question-list" role="list"></div>
+          <div id="empty-state" class="empty-state" hidden>
+            <span aria-hidden="true">⌕</span>
+            <strong>No matching topics</strong>
+            <p>Try a shorter search or choose a different chapter.</p>
+          </div>
+        </div>
+
+        <aside class="book-panel" aria-label="Book PDF viewer">
+          <div class="book-heading">
+            <div class="book-heading-icon" aria-hidden="true">▤</div>
+            <div><h2>Your book</h2><p id="book-status">No PDF selected</p></div>
+            <label class="button button-small" for="book-file">Select PDF</label>
+          </div>
+          <div id="book-empty" class="book-empty">
+            <div class="book-empty-art" aria-hidden="true"><span>PDF</span><i></i><i></i><i></i></div>
+            <h3>Open the full book</h3>
+            <p>Choose <em>Mastering 3rd year.pdf</em>. It contains all three subjects, stays in your browser, and is never uploaded by this page.</p>
+            <label class="button button-outline" for="book-file">Choose book PDF</label>
+          </div>
+          <div id="viewer-wrap" class="viewer-wrap" hidden>
+            <div class="viewer-toolbar">
+              <span id="viewer-page-label">Choose a topic to jump to a page</span>
+              <button id="open-tab" class="icon-button" type="button" aria-label="Open book page in a new tab" title="Open in new tab">↗</button>
+            </div>
+            <iframe id="pdf-frame" title="Selected page in the BDS third-year book" src="about:blank"></iframe>
+          </div>
+          <div class="book-footnote">Page buttons show printed book pages. This full book’s PDF viewer page is four pages ahead of its printed page number.</div>
+        </aside>
+      </section>
+
+      <footer class="footer"><span>Page references matched to <em>Mastering the BDS IIIrd Year</em>.</span><span id="selection-hint">Choose a topic to see its page options.</span></footer>
+    </main>
+    <script src="question-data.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
