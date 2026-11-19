@@ -42,7 +42,7 @@
   let lastRenderedSignature = '';
   let resizeTimer = null;
   let pdfGeneration = 0;
-  const useCanvasPdfViewer = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) || new URLSearchParams(location.search).has('renderPdfInCanvas');
+  const useCanvasPdfViewer = /Android|iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) || new URLSearchParams(location.search).has('renderPdfInCanvas');
   let currentPdfPage = 0;
   let selectedKey = '';
 
