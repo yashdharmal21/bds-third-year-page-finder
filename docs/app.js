@@ -19,6 +19,8 @@
   const bookEmpty = el('book-empty');
   const viewerWrap = el('viewer-wrap');
   const pdfFrame = el('pdf-frame');
+  const pdfCanvasWrap = el('pdf-canvas-wrap');
+  const pdfCanvas = el('pdf-canvas');
   const pageLabel = el('viewer-page-label');
   const openTabButton = el('open-tab');
   const selectionHint = el('selection-hint');
@@ -31,6 +33,13 @@
   let questions = [];
   let currentMatches = [];
   let bookUrl = '';
+  let pdfDocument = null;
+  let pdfLoadingPromise = null;
+  let pdfLibraryPromise = null;
+  let renderTask = null;
+  let resizeObserver = null;
+  let pdfGeneration = 0;
+  const useCanvasPdfViewer = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   let currentPdfPage = 0;
   let selectedKey = '';
 
@@ -102,8 +111,67 @@
       bookEmpty.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       return;
     }
-    pdfFrame.src = `${bookUrl}#page=${pdfPage}&zoom=page-fit`;
+    if (useCanvasPdfViewer) {
+      renderCanvasPage(pdfPage);
+    } else {
+      pdfFrame.src = `${bookUrl}#page=${pdfPage}&zoom=page-fit`;
+    }
     selectionHint.textContent = `Showing PDF page ${pdfPage} for ${label}.`;
+  }
+
+  function loadPdfLibrary() {
+    if (!pdfLibraryPromise) {
+      pdfLibraryPromise = import('https://cdn.jsdelivr.net/npm/pdfjs-dist@6.5.438/build/pdf.min.mjs').then((pdfjsLib) => {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.5.438/build/pdf.worker.min.mjs';
+        return pdfjsLib;
+      });
+    }
+    return pdfLibraryPromise;
+  }
+
+  async function renderCanvasPage(pageNumber) {
+    const generation = pdfGeneration;
+    pageLabel.textContent = `${pageLabel.textContent.split(' · ')[0]} · Loading PDF page ${pageNumber}…`;
+    try {
+      const pdfjsLib = await loadPdfLibrary();
+      if (generation !== pdfGeneration || pageNumber !== currentPdfPage) return;
+      if (!pdfLoadingPromise) pdfLoadingPromise = pdfjsLib.getDocument({ url: bookUrl }).promise;
+      pdfDocument = await pdfLoadingPromise;
+      if (generation !== pdfGeneration || pageNumber !== currentPdfPage) return;
+      if (pageNumber < 1 || pageNumber > pdfDocument.numPages) {
+        throw new Error(`This PDF has ${pdfDocument.numPages} pages; page ${pageNumber} is outside it.`);
+      }
+      if (renderTask) {
+        const previousTask = renderTask;
+        previousTask.cancel();
+        try { await previousTask.promise; } catch (error) {
+          if (!error || error.name !== 'RenderingCancelledException') throw error;
+        }
+        renderTask = null;
+      }
+      if (generation !== pdfGeneration || pageNumber !== currentPdfPage) return;
+      const page = await pdfDocument.getPage(pageNumber);
+      if (generation !== pdfGeneration || pageNumber !== currentPdfPage) return;
+      const availableWidth = Math.max(260, pdfCanvasWrap.clientWidth - 16);
+      const baseViewport = page.getViewport({ scale: 1 });
+      const scale = availableWidth / baseViewport.width;
+      const viewport = page.getViewport({ scale });
+      const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+      const context = pdfCanvas.getContext('2d', { alpha: false });
+      pdfCanvas.width = Math.ceil(viewport.width * pixelRatio);
+      pdfCanvas.height = Math.ceil(viewport.height * pixelRatio);
+      pdfCanvas.style.width = `${Math.ceil(viewport.width)}px`;
+      pdfCanvas.style.height = `${Math.ceil(viewport.height)}px`;
+      renderTask = page.render({ canvasContext: context, viewport, transform: pixelRatio === 1 ? null : [pixelRatio, 0, 0, pixelRatio, 0, 0] });
+      await renderTask.promise;
+      pageLabel.textContent = pageLabel.textContent.replace(/ · Loading PDF page \d+…$/, '');
+    } catch (error) {
+      if (error && error.name === 'RenderingCancelledException') return;
+      if (generation !== pdfGeneration || pageNumber !== currentPdfPage) return;
+      console.error('Could not render the selected PDF page:', error);
+      pageLabel.textContent = `Could not display PDF page ${pageNumber}`;
+      selectionHint.textContent = 'Try opening the PDF in a new tab, or select the book again.';
+    }
   }
 
   function render() {
@@ -172,13 +240,29 @@
   fileInput.addEventListener('change', () => {
     const file = fileInput.files && fileInput.files[0];
     if (!file) return;
+    pdfGeneration += 1;
+    if (renderTask) { renderTask.cancel(); renderTask = null; }
+    if (pdfDocument) pdfDocument.destroy();
+    pdfDocument = null;
+    pdfLoadingPromise = null;
     if (bookUrl) URL.revokeObjectURL(bookUrl);
     bookUrl = URL.createObjectURL(file);
     bookStatus.textContent = file.name;
     bookEmpty.hidden = true;
     viewerWrap.hidden = false;
     currentPdfPage = currentPdfPage || subjectStartPages[activeSubject] + BOOK_TO_PDF_OFFSET;
-    pdfFrame.src = `${bookUrl}#page=${currentPdfPage}&zoom=page-fit`;
+    if (useCanvasPdfViewer) {
+      pdfFrame.hidden = true;
+      pdfCanvasWrap.hidden = false;
+      if (resizeObserver) resizeObserver.disconnect();
+      resizeObserver = new ResizeObserver(() => renderCanvasPage(currentPdfPage));
+      resizeObserver.observe(pdfCanvasWrap);
+      renderCanvasPage(currentPdfPage);
+    } else {
+      pdfCanvasWrap.hidden = true;
+      pdfFrame.hidden = false;
+      pdfFrame.src = `${bookUrl}#page=${currentPdfPage}&zoom=page-fit`;
+    }
     pageLabel.textContent = `${subjectNames[activeSubject]} section start · PDF page ${currentPdfPage}`;
     selectionHint.textContent = `Full book loaded at the ${subjectNames[activeSubject]} section. Choose any page button to jump to a topic.`;
   });
@@ -207,6 +291,9 @@
       render();
     }
   });
-  window.addEventListener('beforeunload', () => { if (bookUrl) URL.revokeObjectURL(bookUrl); });
+  window.addEventListener('beforeunload', () => {
+    if (bookUrl) URL.revokeObjectURL(bookUrl);
+    if (pdfDocument) pdfDocument.destroy();
+  });
   setSubject(activeSubject);
 })();
