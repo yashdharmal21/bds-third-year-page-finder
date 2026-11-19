@@ -20,7 +20,7 @@
   const viewerWrap = el('viewer-wrap');
   const pdfFrame = el('pdf-frame');
   const pdfCanvasWrap = el('pdf-canvas-wrap');
-  const pdfCanvas = el('pdf-canvas');
+  let pdfCanvas = el('pdf-canvas');
   const pageLabel = el('viewer-page-label');
   const openTabButton = el('open-tab');
   const selectionHint = el('selection-hint');
@@ -40,7 +40,7 @@
   let renderTask = null;
   let renderQueue = Promise.resolve();
   let lastRenderedSignature = '';
-  let resizeObserver = null;
+  let resizeTimer = null;
   let pdfGeneration = 0;
   const useCanvasPdfViewer = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) || new URLSearchParams(location.search).has('renderPdfInCanvas');
   let currentPdfPage = 0;
@@ -169,6 +169,11 @@
       const baseViewport = page.getViewport({ scale: 1 });
       const scale = availableWidth / baseViewport.width;
       const viewport = page.getViewport({ scale });
+      const nextCanvas = document.createElement('canvas');
+      nextCanvas.id = 'pdf-canvas';
+      nextCanvas.setAttribute('aria-label', 'PDF page');
+      pdfCanvas.replaceWith(nextCanvas);
+      pdfCanvas = nextCanvas;
       const context = pdfCanvas.getContext('2d', { alpha: false });
       pdfCanvas.width = Math.ceil(viewport.width * pixelRatio);
       pdfCanvas.height = Math.ceil(viewport.height * pixelRatio);
@@ -271,9 +276,6 @@
     if (useCanvasPdfViewer) {
       pdfFrame.hidden = true;
       pdfCanvasWrap.hidden = false;
-      if (resizeObserver) resizeObserver.disconnect();
-      resizeObserver = new ResizeObserver(() => renderCanvasPage(currentPdfPage));
-      resizeObserver.observe(pdfCanvasWrap);
       renderCanvasPage(currentPdfPage);
     } else {
       pdfCanvasWrap.hidden = true;
@@ -289,6 +291,14 @@
     window.open(`${bookUrl}#page=${currentPdfPage || 1}&zoom=page-fit`, '_blank', 'noopener');
   });
   subjectSelect.addEventListener('change', () => setSubject(subjectSelect.value));
+  window.addEventListener('resize', () => {
+    if (!useCanvasPdfViewer || !bookUrl) return;
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      lastRenderedSignature = '';
+      renderCanvasPage(currentPdfPage);
+    }, 180);
+  });
   searchInput.addEventListener('input', render);
   chapterSelect.addEventListener('change', render);
   el('clear-filters').addEventListener('click', () => {
