@@ -33,13 +33,14 @@
   let questions = [];
   let currentMatches = [];
   let bookUrl = '';
+  let bookFile = null;
   let pdfDocument = null;
   let pdfLoadingPromise = null;
   let pdfLibraryPromise = null;
   let renderTask = null;
   let resizeObserver = null;
   let pdfGeneration = 0;
-  const useCanvasPdfViewer = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const useCanvasPdfViewer = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) || new URLSearchParams(location.search).has('renderPdfInCanvas');
   let currentPdfPage = 0;
   let selectedKey = '';
 
@@ -121,8 +122,8 @@
 
   function loadPdfLibrary() {
     if (!pdfLibraryPromise) {
-      pdfLibraryPromise = import('https://cdn.jsdelivr.net/npm/pdfjs-dist@6.5.438/build/pdf.min.mjs').then((pdfjsLib) => {
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.5.438/build/pdf.worker.min.mjs';
+      pdfLibraryPromise = import('https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.min.mjs').then((pdfjsLib) => {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs';
         return pdfjsLib;
       });
     }
@@ -135,7 +136,9 @@
     try {
       const pdfjsLib = await loadPdfLibrary();
       if (generation !== pdfGeneration || pageNumber !== currentPdfPage) return;
-      if (!pdfLoadingPromise) pdfLoadingPromise = pdfjsLib.getDocument({ url: bookUrl }).promise;
+      if (!pdfLoadingPromise) {
+        pdfLoadingPromise = bookFile.arrayBuffer().then((data) => pdfjsLib.getDocument({ data }).promise);
+      }
       pdfDocument = await pdfLoadingPromise;
       if (generation !== pdfGeneration || pageNumber !== currentPdfPage) return;
       if (pageNumber < 1 || pageNumber > pdfDocument.numPages) {
@@ -170,7 +173,7 @@
       if (generation !== pdfGeneration || pageNumber !== currentPdfPage) return;
       console.error('Could not render the selected PDF page:', error);
       pageLabel.textContent = `Could not display PDF page ${pageNumber}`;
-      selectionHint.textContent = 'Try opening the PDF in a new tab, or select the book again.';
+      selectionHint.textContent = `Try opening the PDF in a new tab, or select it again. ${error.message || ''}`;
     }
   }
 
@@ -247,6 +250,7 @@
     pdfLoadingPromise = null;
     if (bookUrl) URL.revokeObjectURL(bookUrl);
     bookUrl = URL.createObjectURL(file);
+    bookFile = file;
     bookStatus.textContent = file.name;
     bookEmpty.hidden = true;
     viewerWrap.hidden = false;
