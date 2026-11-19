@@ -38,6 +38,8 @@
   let pdfLoadingPromise = null;
   let pdfLibraryPromise = null;
   let renderTask = null;
+  let renderQueue = Promise.resolve();
+  let lastRenderedSignature = '';
   let resizeObserver = null;
   let pdfGeneration = 0;
   const useCanvasPdfViewer = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) || new URLSearchParams(location.search).has('renderPdfInCanvas');
@@ -130,9 +132,14 @@
     return pdfLibraryPromise;
   }
 
-  async function renderCanvasPage(pageNumber) {
+  function renderCanvasPage(pageNumber) {
     const generation = pdfGeneration;
     pageLabel.textContent = `${pageLabel.textContent.split(' · ')[0]} · Loading PDF page ${pageNumber}…`;
+    renderQueue = renderQueue.catch(() => {}).then(() => renderCanvasPageNow(pageNumber, generation));
+    return renderQueue;
+  }
+
+  async function renderCanvasPageNow(pageNumber, generation) {
     try {
       const pdfjsLib = await loadPdfLibrary();
       if (generation !== pdfGeneration || pageNumber !== currentPdfPage) return;
@@ -156,17 +163,22 @@
       const page = await pdfDocument.getPage(pageNumber);
       if (generation !== pdfGeneration || pageNumber !== currentPdfPage) return;
       const availableWidth = Math.max(260, pdfCanvasWrap.clientWidth - 16);
+      const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+      const signature = `${pageNumber}:${availableWidth}:${pixelRatio}`;
+      if (signature === lastRenderedSignature) return;
       const baseViewport = page.getViewport({ scale: 1 });
       const scale = availableWidth / baseViewport.width;
       const viewport = page.getViewport({ scale });
-      const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
       const context = pdfCanvas.getContext('2d', { alpha: false });
       pdfCanvas.width = Math.ceil(viewport.width * pixelRatio);
       pdfCanvas.height = Math.ceil(viewport.height * pixelRatio);
       pdfCanvas.style.width = `${Math.ceil(viewport.width)}px`;
       pdfCanvas.style.height = `${Math.ceil(viewport.height)}px`;
-      renderTask = page.render({ canvasContext: context, viewport, transform: pixelRatio === 1 ? null : [pixelRatio, 0, 0, pixelRatio, 0, 0] });
-      await renderTask.promise;
+      const task = page.render({ canvasContext: context, viewport, transform: pixelRatio === 1 ? null : [pixelRatio, 0, 0, pixelRatio, 0, 0] });
+      renderTask = task;
+      await task.promise;
+      if (renderTask === task) renderTask = null;
+      lastRenderedSignature = signature;
       pageLabel.textContent = pageLabel.textContent.replace(/ · Loading PDF page \d+…$/, '');
     } catch (error) {
       if (error && error.name === 'RenderingCancelledException') return;
@@ -248,6 +260,7 @@
     if (pdfDocument) pdfDocument.destroy();
     pdfDocument = null;
     pdfLoadingPromise = null;
+    lastRenderedSignature = '';
     if (bookUrl) URL.revokeObjectURL(bookUrl);
     bookUrl = URL.createObjectURL(file);
     bookFile = file;
