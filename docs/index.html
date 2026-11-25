@@ -9,6 +9,41 @@
   </head>
   <body>
     <main class="app-shell">
+      <section id="test-overlay" class="test-overlay" hidden aria-modal="true" role="dialog" aria-labelledby="test-title">
+        <div class="test-card">
+          <div class="test-kicker">Oral Pathology · Surprise test</div>
+          <h2 id="test-title">Surprise test</h2>
+          <div id="test-intro">
+            <p id="test-description">A 50-question Oral Pathology practice test drawn from the topics in this study guide.</p>
+            <label class="test-name-label" for="test-name">Your name</label>
+            <input id="test-name" class="test-name" type="text" maxlength="80" autocomplete="name" placeholder="Enter your name" />
+            <ul class="test-rules">
+              <li>50 multiple-choice questions · 50 minutes total</li>
+              <li>Each question has four choices. An answer is final and moves to the next question.</li>
+              <li>No back button. One attempt is saved in this browser; refreshing will not restart the timer.</li>
+              <li>The test submits automatically when you finish or when time runs out.</li>
+            </ul>
+            <p class="test-privacy">Your selected choices are used to calculate your mark. In the live test, only your name and final mark are saved for the organizer; your answers are not kept.</p>
+            <button id="test-start" class="button button-primary test-main-button" type="button">Start test</button>
+            <button id="test-later" class="text-button test-later" type="button">Maybe later</button>
+          </div>
+          <div id="test-quiz" hidden>
+            <div class="test-status"><span id="test-progress">Question 1 of 50</span><strong id="test-timer">50:00</strong></div>
+            <div class="test-progress-track"><div id="test-progress-bar"></div></div>
+            <p id="test-subject" class="test-subject"></p>
+            <h3 id="test-question" class="test-question"></h3>
+            <div id="test-options" class="test-options"></div>
+            <p class="test-lock-note">Once you choose an answer, you’ll move straight to the next question.</p>
+          </div>
+          <div id="test-finished" hidden>
+            <h3 id="test-finished-title">Test submitted</h3>
+            <p id="test-finished-copy"></p>
+            <p id="test-result-summary" class="test-result-summary"></p>
+            <button id="test-close" class="button button-primary test-main-button" type="button">Back to study</button>
+          </div>
+          <button id="test-clear-local" class="text-button test-clear-local" type="button" hidden>Reset local preview (development only)</button>
+        </div>
+      </section>
       <header class="topbar">
         <a class="brand" href="#top" aria-label="Oral Pathology Page Finder home">
           <span class="brand-mark" aria-hidden="true">PD</span>
@@ -95,6 +130,9 @@
       <footer class="footer"><span>Page references matched to <em>Mastering the BDS IIIrd Year</em>.</span><span id="selection-hint">Choose a topic to see its page options.</span></footer>
     </main>
     <script src="question-data.js"></script>
+    <script src="test-data.js"></script>
     <script src="app.js?v=mobile-pdf-render-3"></script>
+    <script src="test-config.js?v=1"></script>
+    <script src="test-app.js?v=op-test-1"></script>
   </body>
 </html>
