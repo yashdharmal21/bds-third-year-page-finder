@@ -22,7 +22,7 @@ To preview the test without sending real results, serve the `docs` folder locall
 ## Included question lists
 
 - Oral Pathology: 161 topics from 24 chapters.
-- General Medicine: 169 questions from the supplied chapter-wise bank.
+- General Medicine: 182 question topics, including 13 supplemental lesson-wise LAQs.
 - General Surgery: 158 questions from the supplied LAQ/SAQ/practical bank.
 
 General Medicine and Surgery page links are suggested matches based on topic wording in the book text. Check nearby pages for continued answers. Topics without a match are labeled **Not located**.
