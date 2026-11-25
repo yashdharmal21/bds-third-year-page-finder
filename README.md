@@ -13,6 +13,12 @@ On an iPad, open the site in Safari and choose the book from Files (save or copy
 
 The book is read from the local file picker and is not uploaded. The app uses the full volume's printed-page offset: PDF viewer page = printed book page + 4.
 
+## OP surprise test
+
+The app opens with a 50-question Oral Pathology practice test. Questions and choices are randomized, each response advances immediately, and the 50-minute deadline survives a page refresh. Students enter their name; the organizer's private Google Sheet records only name and mark. The answer key is held by the Apps Script grader and selected answers are not saved.
+
+To preview the test without sending real results, serve the `docs` folder locally and open the page with `?testDev=1`. Browser storage enforces one attempt per browser profile; clearing site data or using another device can start another attempt.
+
 ## Included question lists
 
 - Oral Pathology: 161 topics from 24 chapters.
